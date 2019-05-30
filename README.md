@@ -1,5 +1,5 @@
 # check_asterisk
-check_asterisk plugin for Nagios / Icinga. Warns if Asterisk isn't responding, or if values are outside specified limits. Returns performance data.
+check_asterisk plugin for Nagios / Icinga. Warns if Asterisk isn't responding, or if values are outside specified limits. Also returns performance data.
 
 ## Description   
 
