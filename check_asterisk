@@ -8,12 +8,12 @@ CAPACITY_THRESHOLD=100
 
 usage() {
 	echo "Usage: $( basename $0 ) [ -c <minimum calls> ] [ -a <minimum channels> ] [ -p <minimum peers> ] [ -t <maximum capacity> ]"
-	exit 2
+	exit 3
 }
 
 error() {
 	echo "ERROR: $*"
-	exit 2
+	exit 3
 }
 
 while getopts ":hp:c:a:t:" opt; do
