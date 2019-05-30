@@ -1,0 +1,123 @@
+#!/bin/bash
+set -euo pipefail
+PATH=$PATH:/usr/sbin
+PEER_THRESHOLD=1
+CHANNEL_THRESHOLD=0
+CALL_THRESHOLD=0
+CAPACITY_THRESHOLD=100
+
+usage() {
+	echo "Usage: $( basename $0 ) [ -c <minimum calls> ] [ -a <minimum channels> ] [ -p <minimum peers> ] [ -t <maximum capacity> ]"
+	exit 2
+}
+
+error() {
+	echo "ERROR: $*"
+	exit 2
+}
+
+while getopts ":hp:c:a:t:" opt; do
+    case $opt in
+      c  ) CALL_THRESHOLD=$OPTARG ;;
+      a  ) CHANNEL_THRESHOLD=$OPTARG ;;
+      p  ) PEER_THRESHOLD=$OPTARG ;;
+      t  ) CAPACITY_THRESHOLD=$OPTARG ;;
+      :  ) error "Option -$OPTARG requires an argument." ;;
+      \? ) error "Invalid option: -$OPTARG" ;;
+      h  ) usage ;;
+      *  ) usage ;;
+    esac
+done
+
+nagios_warn() { 
+    echo "WARNING: $@"
+    exit 1 
+
+}
+
+nagios_crit() { 
+    echo "CRITICAL: $@"
+    exit 2 
+
+}
+
+nagios_unknown() {
+    echo "$@"
+    exit 3
+
+}
+
+good_int() { 
+    if [[ ! "$@" =~ ^[0-9]+$ ]]; then
+        return 1 
+
+    fi
+
+}
+
+join_by() { 
+  local d=$1
+  shift
+  echo -n "$1"
+  shift
+  printf "%s" "${@/#/$d}"
+
+}
+
+# gather asterisk output
+which asterisk > /dev/null 2>&1 || nagios_unknown "asterisk not found in path."
+ASTERISK_CMD="asterisk -r -s /var/run/asterisk/asterisk.ctl -x"
+UPTIME="$(   $ASTERISK_CMD   'core show uptime'   2>/dev/null | tail -1 )"                         || nagios_crit "Error communicating with Asterisk."
+PEERS="$(    $ASTERISK_CMD   'sip show peers'     2>/dev/null | awk '/sip peers/ { print $1 }' )"  || nagios_warn "Error getting SIP peers."
+CHANOUT="$(  $ASTERISK_CMD   'core show channels' 2>/dev/null )"                                   || nagios_warn "Error getting channels."
+
+# process asterisk output
+CALLS="$(    echo "$CHANOUT" | awk '/active call/   { print $1 }' )"
+CHANNELS="$( echo "$CHANOUT" | awk '/active channel/ { print $1 }' )"
+CAPACITY="$( echo "$CHANOUT" | awk 'match($0, /[0-9]+\.[0-9]+%/) {print substr($0, RSTART, RLENGTH)}' )"
+
+
+if good_int $PEERS && good_int $CHANNELS && good_int $CALLS; then
+	[[ ! $CALLS    -ge $CALL_THRESHOLD    ]] && WARN+=(Calls)
+	[[ ! $CHANNELS -ge $CHANNEL_THRESHOLD ]] && WARN+=(Channels)
+	[[ ! $PEERS    -ge $PEER_THRESHOLD    ]] && WARN+=(Peers)
+		
+else
+	nagios_unknown "Bad data. CALLS: $CALLS, CHANNELS: $CHANNELS, PEERS: $PEERS, CAPACITY: $CAPACITY."
+	
+fi
+
+if [[ -n $CAPACITY ]]; then
+	if good_int ${CAPACITY%????}; then
+		# the following syntax trims last 4 digits to use CAPACITY as an integer
+		[[ ! "${CAPACITY%????}" -lt $( echo $CAPACITY_THRESHOLD | tr -d % ) ]] && WARN+=(Capacity)
+
+	else
+		nagios_unknown "Bad data. CALLS: $CALLS, CHANNELS: $CHANNELS, PEERS: $PEERS, CAPACITY: $CAPACITY."
+
+	fi
+
+fi
+
+
+# bash 3.2 compatibility. use "set -u" and "if -V" in bash 4.x
+set +u
+if [[ -n ${WARN[@]} ]]; then
+	set -u
+	if [[ -n $CAPACITY ]]; then
+		nagios_warn "$( join_by ', ' "${WARN[@]}" ) outside specified threshold. Calls: $CALLS, Channels: $CHANNELS, Peers: $PEERS, Capacity: $CAPACITY. $UPTIME|calls=$CALLS;;; channels=$CHANNELS;;; peers=$PEERS;;; capacity=$CAPACITY;;; "
+	else
+		nagios_warn "$( join_by ', ' "${WARN[@]}" ) outside specified threshold. Calls: $CALLS, Channels: $CHANNELS, Peers: $PEERS. $UPTIME|calls=$CALLS;;; channels=$CHANNELS;;; peers=$PEERS;;; "
+	fi
+		
+
+else
+	if [[ -n $CAPACITY ]]; then
+		echo "OK: Calls: $CALLS, Channels: $CHANNELS, Peers: $PEERS, Capacity: $CAPACITY. $UPTIME|calls=$CALLS;;; channels=$CHANNELS;;; peers=$PEERS;;; capacity=$CAPACITY;;; "
+	else
+		echo "OK: Calls: $CALLS, Channels: $CHANNELS, Peers: $PEERS. $UPTIME|calls=$CALLS;;; channels=$CHANNELS;;; peers=$PEERS;;; "
+	fi
+	exit 0
+	
+fi
+
