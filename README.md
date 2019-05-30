@@ -21,7 +21,9 @@ Usage: check_asterisk [ -c <minimum calls> ] [ -a <minimum channels> ] [ -p <min
 Everything is okay:
 ```
 sudo check_asterisk
-OK: Calls: 23, Channels: 45, Peers: 90, Capacity: 23.00%. Last reload: 1 week, 20 hours, 38 minutes, 56 seconds |calls=23;;; channels=45;;; peers=90;;; capacity=23.00%;;; 
+OK: Calls: 23, Channels: 45, Peers: 90, Capacity: 23.00%. Last reload: 1 week, 20 hours, 38 minutes, 56 seconds |calls=23;;; channels=45;;; peers=90;;; capacity=23.00%;;;
+
+echo $?
 0
 ```
 
