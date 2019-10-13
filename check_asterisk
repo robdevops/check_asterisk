@@ -17,45 +17,45 @@ error() {
 }
 
 while getopts ":hp:c:a:t:" opt; do
-    case $opt in
-      c  ) CALL_THRESHOLD=$OPTARG ;;
-      a  ) CHANNEL_THRESHOLD=$OPTARG ;;
-      p  ) PEER_THRESHOLD=$OPTARG ;;
-      t  ) CAPACITY_THRESHOLD=$OPTARG ;;
-      :  ) error "Option -$OPTARG requires an argument." ;;
-      \? ) error "Invalid option: -$OPTARG" ;;
-      h  ) usage ;;
-      *  ) usage ;;
-    esac
+	case $opt in
+	  c  ) CALL_THRESHOLD=$OPTARG ;;
+	  a  ) CHANNEL_THRESHOLD=$OPTARG ;;
+	  p  ) PEER_THRESHOLD=$OPTARG ;;
+	  t  ) CAPACITY_THRESHOLD=$OPTARG ;;
+	  :  ) error "Option -$OPTARG requires an argument." ;;
+	  \? ) error "Invalid option: -$OPTARG" ;;
+	  h  ) usage ;;
+	  *  ) usage ;;
+	esac
 done
 
-nagios_warn() { 
-    echo "WARNING: $@"
-    exit 1 
+nagios_warn() {
+	echo "WARNING: $@"
+	exit 1
 
 }
 
-nagios_crit() { 
-    echo "CRITICAL: $@"
-    exit 2 
+nagios_crit() {
+	echo "CRITICAL: $@"
+	exit 2
 
 }
 
 nagios_unknown() {
-    echo "$@"
-    exit 3
+	echo "$@"
+	exit 3
 
 }
 
-good_int() { 
-    if [[ ! "$@" =~ ^[0-9]+$ ]]; then
-        return 1 
+good_int() {
+	if [[ ! "$@" =~ ^[0-9]+$ ]]; then
+	    return 1
 
-    fi
+	fi
 
 }
 
-join_by() { 
+join_by() {
   local d=$1
   shift
   echo -n "$1"
@@ -81,10 +81,10 @@ if good_int $PEERS && good_int $CHANNELS && good_int $CALLS; then
 	[[ ! $CALLS    -ge $CALL_THRESHOLD    ]] && WARN+=(Calls)
 	[[ ! $CHANNELS -ge $CHANNEL_THRESHOLD ]] && WARN+=(Channels)
 	[[ ! $PEERS    -ge $PEER_THRESHOLD    ]] && WARN+=(Peers)
-		
+
 else
 	nagios_unknown "Bad data. CALLS: $CALLS, CHANNELS: $CHANNELS, PEERS: $PEERS, CAPACITY: $CAPACITY."
-	
+
 fi
 
 if [[ -n $CAPACITY ]]; then
@@ -109,7 +109,6 @@ if [[ -n ${WARN[@]} ]]; then
 	else
 		nagios_warn "$( join_by ', ' "${WARN[@]}" ) outside specified threshold. Calls: $CALLS, Channels: $CHANNELS, Peers: $PEERS. $UPTIME|calls=$CALLS;;; channels=$CHANNELS;;; peers=$PEERS;;; "
 	fi
-		
 
 else
 	if [[ -n $CAPACITY ]]; then
@@ -118,6 +117,6 @@ else
 		echo "OK: Calls: $CALLS, Channels: $CHANNELS, Peers: $PEERS. $UPTIME|calls=$CALLS;;; channels=$CHANNELS;;; peers=$PEERS;;; "
 	fi
 	exit 0
-	
+
 fi
 
