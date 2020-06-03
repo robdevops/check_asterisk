@@ -7,7 +7,7 @@ CALL_THRESHOLD=0
 CAPACITY_THRESHOLD=100
 
 usage() {
-	echo "Usage: $( basename $0 ) [ -c <minimum calls> ] [ -a <minimum channels> ] [ -p <minimum peers> ] [ -t <maximum capacity> ]"
+	echo "Usage: ${0##*/} [ -c <minimum calls> ] [ -a <minimum channels> ] [ -p <minimum peers> ] [ -t <maximum capacity> ]"
 	exit 3
 }
 
